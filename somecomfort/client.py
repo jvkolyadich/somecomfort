@@ -142,12 +142,20 @@ class Device(object):
         except ValueError:
             raise SomeComfortError("Invalid fan mode `%s`" % mode)
 
-        key = "fanMode%sAllowed" % mode.title()
-        if not self._data['fanData'][key]:
+        key = "fanMode%sAllowed" % mode.title().replace(' ', '')
+        mode_allowed = self._data['fanData'][key]
+        if mode == FAN_MODES[3] and not mode_allowed:
+            self._client._set_thermostat_settings(self.deviceid, {
+                'StatusHeat': 0,
+                'StatusCool': 0,
+                'FanMode': 0})
+            self._data['fanData']['fanMode'] = 0
+        elif not mode_allowed:
             raise SomeComfortError("Device does not support %s" % mode)
-        self._client._set_thermostat_settings(
-            self.deviceid, {'FanMode': mode_index})
-        self._data['fanData']['fanMode'] = mode_index
+        else:
+            self._client._set_thermostat_settings(
+                self.deviceid, {'FanMode': mode_index})
+            self._data['fanData']['fanMode'] = mode_index
 
     @property
     def system_mode(self):
